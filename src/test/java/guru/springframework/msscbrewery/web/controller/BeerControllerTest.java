@@ -48,9 +48,11 @@ public class BeerControllerTest {
 
     BeerDto validBeer;
 
+    private UUID beerid = UUID.randomUUID();
+
     @BeforeEach
     public void setUp() {
-        validBeer = BeerDto.builder().id(UUID.randomUUID())
+        validBeer = BeerDto.builder().id(beerid)
                 .beerName("Beer1")
                 .beerStyle("PALE_ALE")
                 .upc(123456789012L)
@@ -113,17 +115,29 @@ public class BeerControllerTest {
     @Test
     public void handleUpdate() throws Exception {
         //given
-        BeerDto beerDto = validBeer;
+        BeerDto beerDto =  validBeer;
         beerDto.setId(null);
         String beerDtoJson = objectMapper.writeValueAsString(beerDto);
-
+        ConstrainedFields fields = new ConstrainedFields(BeerDto.class);
         //when
-        mockMvc.perform(put("/api/v1/beer/" + UUID.randomUUID())
+        mockMvc.perform(put("/api/v1/beer/{beerId}", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(beerDtoJson))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andDo(document("v1/beer-update",
+                        pathParameters (
+                                parameterWithName("beerId").description("UUID of the updated beer.")
+                        ),
+                        requestFields(
+                                fields.withPath("id").description("Id of Beer").type(UUID.class),
+                                fields.withPath("createdDate").description("Date Created").type(OffsetDateTime.class),
+                                fields.withPath("lastUpdatedDate").description("Date Updated").type(OffsetDateTime.class),
+                                fields.withPath("beerName").description("Beer Name"),
+                                fields.withPath("beerStyle").description("Beer Style"),
+                                fields.withPath("upc").description("UPC of Beer")
+                        )));
 
-        then(beerService).should().updateBeer(any(), any());
+       then(beerService).should().updateBeer(any(), any());
 
     }
 
